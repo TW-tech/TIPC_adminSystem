@@ -1,0 +1,209 @@
+// ============================================================================
+// Article CMS - Prisma Schema
+// ============================================================================
+//
+// Design Rationale:
+//
+// 1. BLOCK-BASED ARCHITECTURE
+//    - Each block is a separate row for independent CRUD operations
+//    - Position field enables O(1) reordering without touching content
+//    - JSON data field allows type-specific structure without table bloat
+//
+// 2. ANNOTATION SEPARATION
+//    - Annotations stored at article level (NOT in blocks)
+//    - Enforces reference integrity: if marker exists, annotation must exist
+//    - Enables batch validation of reference markers vs annotations
+//    - Simplifies annotation management (add/edit/delete) without block updates
+//
+// 3. OPTIONAL MEDIA
+//    - Video/Podcast as separate tables with optional one-to-one relation
+//    - Allows rich metadata without polluting Article table
+//    - Easy to query articles with/without media
+//
+// 4. EDITABILITY
+//    - Update single block: UPDATE ArticleBlock WHERE id = ?
+//    - Reorder blocks: UPDATE position values only
+//    - Add/remove annotation: No block updates needed
+//    - All operations are surgical, no cascading updates
+//
+// ============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================================================
+// USER AUTHENTICATION
+// ============================================================================
+
+model Users {
+  id        String   @id @default(cuid())
+  account   String   @unique
+  password  String // Store hashed password only
+  title     String // Role/permission title (e.g., "admin", "editor", "viewer")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([account])
+  @@map("users")
+}
+
+model KeyWords {
+  id       String           @id @default(cuid())
+  name     String
+  articles ArticleKeyWord[]
+}
+
+model CakeCategory {
+    id       String           @id @default(cuid())
+    name     String
+    articles ArticleCakeCategory[]
+}
+
+model NineBlocks {
+  id       String             @id @default(cuid())
+  name     String
+  articles ArticleNineBlock[]
+}
+
+// Many-to-many junction tables
+model ArticleCakeCategory {
+  articleId      String
+  cakeCategoryId String
+  article        Article      @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  cakeCategory   CakeCategory @relation(fields: [cakeCategoryId], references: [id], onDelete: Cascade)
+
+  @@id([articleId, cakeCategoryId])
+  @@map("article_cake_categories")
+}
+
+model ArticleKeyWord {
+  articleId String
+  keyWordId String
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  keyWord   KeyWords @relation(fields: [keyWordId], references: [id], onDelete: Cascade)
+
+  @@id([articleId, keyWordId])
+  @@map("article_keywords")
+}
+
+model ArticleNineBlock {
+  articleId   String
+  nineBlockId String
+  article     Article    @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  nineBlock   NineBlocks @relation(fields: [nineBlockId], references: [id], onDelete: Cascade)
+
+  @@id([articleId, nineBlockId])
+  @@map("article_nine_blocks")
+}
+
+// ============================================================================
+// ARTICLE
+// ============================================================================
+
+model Article {
+  id          String             @id @default(cuid())
+  title       String
+  author      String
+  coverImage  String             // 封面照片 URL (required)
+  keyWords    ArticleKeyWord[]
+  nineBlocks  ArticleNineBlock[]
+  cakeCategory ArticleCakeCategory[]
+  slug        String             @unique
+  publishedAt DateTime?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  // Relations
+  blocks      ArticleBlock[]
+  annotations ArticleAnnotation[]
+  videos      ArticleVideo[]
+  podcasts    ArticlePodcast[]
+
+  @@index([slug])
+  @@index([publishedAt])
+  @@map("articles")
+}
+
+// ============================================================================
+// ARTICLE BLOCKS
+// ============================================================================
+
+model ArticleBlock {
+  id        String    @id @default(cuid())
+  articleId String
+  position  Int // 0-indexed, determines display order
+  type      BlockType
+  data      Json // Type-specific data (TextBlockData | ImageBlockData | QuoteBlockData)
+  // Note: Text content and image captions can contain inline reference markers (e.g., [1], [2])
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  article Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  // Composite unique constraint: one position per article
+  @@unique([articleId, position])
+  @@index([articleId, position]) // Fast ordered retrieval
+  @@map("article_blocks")
+}
+
+enum BlockType {
+  text
+  image
+  quote
+}
+
+// ============================================================================
+// ANNOTATIONS (REFERENCES)
+// ============================================================================
+
+model ArticleAnnotation {
+  id        String   @id @default(cuid())
+  articleId String
+  marker    String // Reference marker (e.g., "1", "2", "a")
+  text      String   @db.Text // Full citation text
+  url       String? // Optional source link
+  position  Int // Display order in annotations section
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  article Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  // Ensure unique markers per article
+  @@unique([articleId, marker])
+  @@unique([articleId, position])
+  @@index([articleId, position]) // Fast ordered retrieval
+  @@map("article_annotations")
+}
+
+// ============================================================================
+// OPTIONAL MEDIA ATTACHMENTS
+// ============================================================================
+
+model ArticleVideo {
+  id        String   @id @default(cuid())
+  articleId String
+  url       String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  article Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@map("article_videos")
+}
+
+model ArticlePodcast {
+  id        String   @id @default(cuid())
+  articleId String
+  url       String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  article Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@map("article_podcasts")
+}
