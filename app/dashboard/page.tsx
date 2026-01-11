@@ -39,6 +39,8 @@ interface Archive {
   WebName: string
   OrgName: string
   OrgWebLink: string
+  createdAt?: string
+  updatedAt?: string
 }
 
 interface Partner {
@@ -46,6 +48,8 @@ interface Partner {
   name: string
   logo: string
   webUrl: string
+  createdAt?: string
+  updatedAt?: string
 }
 
 interface Book {
@@ -180,9 +184,11 @@ export default function DashboardPage() {
       }
       
       // 按更新時間排序（最新的在前）
-      allContents.sort((a, b) => 
-        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-      )
+      allContents.sort((a, b) => {
+        const aTime = a.updatedAt ? new Date(a.updatedAt).getTime() : 0
+        const bTime = b.updatedAt ? new Date(b.updatedAt).getTime() : 0
+        return bTime - aTime
+      })
       
       setContents(allContents)
       setFilteredContents(allContents)
