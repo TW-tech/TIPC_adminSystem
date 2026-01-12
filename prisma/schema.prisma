@@ -59,6 +59,7 @@ model KeyWords {
   id          String              @id @default(cuid())
   name        String              @unique
   articles    ArticleKeyWord[]
+  selections  SelectionKeyWord[]
   videos      VideoKeyWord[]
 }
 
@@ -275,6 +276,113 @@ model ArticlePodcast {
   article Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
 
   @@map("article_podcasts")
+}
+
+// ============================================================================
+// Selection (similar to Article but without cakeCategory and nineBlocks)
+// ============================================================================
+
+model SelectionKeyWord {
+  selectionId String
+  keyWordId   String
+  selection   Selection @relation(fields: [selectionId], references: [id], onDelete: Cascade)
+  keyWord     KeyWords  @relation(fields: [keyWordId], references: [id], onDelete: Cascade)
+
+  @@id([selectionId, keyWordId])
+  @@map("selection_keywords")
+}
+
+model Selection {
+  id          String               @id @default(cuid())
+  englishTitle  String?
+  title       String
+  author      String
+  coverImage  String             // 封面照片 URL (required)
+  keyWords    SelectionKeyWord[]
+  slug        String             @unique
+  publishedAt DateTime?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  // Relations
+  blocks      SelectionBlock[]
+  annotations SelectionAnnotation[]
+  videos      SelectionVideo[]
+  podcasts    SelectionPodcast[]
+
+  @@index([slug])
+  @@index([publishedAt])
+  @@map("selections")
+}
+
+// ============================================================================
+// Selection block
+// ============================================================================
+
+model SelectionBlock {
+  id          String    @id @default(cuid())
+  selectionId String
+  position    Int // 0-indexed, determines display order
+  type        BlockType
+  data        Json // Type-specific data (TextBlockData | ImageBlockData | QuoteBlockData)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  selection Selection @relation(fields: [selectionId], references: [id], onDelete: Cascade)
+
+  @@unique([selectionId, position])
+  @@index([selectionId, position])
+  @@map("selection_blocks")
+}
+
+// ============================================================================
+// Selection ANNOTATIONS (REFERENCES)
+// ============================================================================
+
+model SelectionAnnotation {
+  id          String   @id @default(cuid())
+  selectionId String
+  marker      String // Reference marker (e.g., "1", "2", "a")
+  text        String   @db.Text // Full citation text
+  url         String? // Optional source link
+  position    Int // Display order in annotations section
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  selection Selection @relation(fields: [selectionId], references: [id], onDelete: Cascade)
+
+  @@unique([selectionId, marker])
+  @@unique([selectionId, position])
+  @@index([selectionId, position])
+  @@map("selection_annotations")
+}
+
+// ============================================================================
+// Selection OPTIONAL MEDIA ATTACHMENTS
+// ============================================================================
+
+model SelectionVideo {
+  id          String   @id @default(cuid())
+  selectionId String
+  url         String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  selection Selection @relation(fields: [selectionId], references: [id], onDelete: Cascade)
+
+  @@map("selection_videos")
+}
+
+model SelectionPodcast {
+  id          String   @id @default(cuid())
+  selectionId String
+  url         String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  selection Selection @relation(fields: [selectionId], references: [id], onDelete: Cascade)
+
+  @@map("selection_podcasts")
 }
 
 // ============================================================================

@@ -73,6 +73,8 @@ interface Event {
   updatedAt: string
 }
 
+
+
 type ContentItem = (Article | Photograph | Video | Archive | Partner | Book | Event) & { type: 'article' | 'photograph' | 'video' | 'archive' | 'partner' | 'book' | 'event' }
 
 export default function DashboardPage() {
