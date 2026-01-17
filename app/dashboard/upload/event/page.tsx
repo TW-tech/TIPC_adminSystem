@@ -203,8 +203,7 @@ export default function EventUploadPage() {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               活動標題 <span className="text-red-500">*</span>
             </label>
-            <input
-              type="text"
+            <textarea
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
@@ -328,7 +327,7 @@ export default function EventUploadPage() {
                     value={block.content}
                     onChange={(e) => updateTextBlock(block.id, e.target.value)}
                     rows={4}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 min-h-[120px]"
                     placeholder="請輸入段落內容..."
                   />
                 </div>
