@@ -521,7 +521,7 @@ export default function DashboardPage() {
 
   return (
     <div className="p-8">
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-8xl mx-auto">
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-900">內容管理</h1>
         </div>
